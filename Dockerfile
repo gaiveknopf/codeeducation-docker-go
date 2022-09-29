@@ -1,24 +1,22 @@
 ## Build
 
-FROM golang:1.19-buster as Build
+FROM golang:1.19-alpine as builder
+
+RUN apk add --no-cache git
 
 WORKDIR /app
 
-COPY go.mod .
-COPY *.go ./
+COPY . .
 
-RUN go build -o /codeeducation
-
-CMD [ "/codeeducation" ]
+RUN CGO_ENABLED=0 GOOS=linux \
+  go build -a -installsuffix cgo -ldflags="-s -w" -o /codeeducation
 
 ## Deploy
 
-FROM gcr.io/distroless/base-debian10
+FROM alpine:latest
 
 WORKDIR /
 
-COPY --from=build /codeeducation /codeeducation
-
-USER nonroot:nonroot
+COPY --from=builder /codeeducation /codeeducation
 
 ENTRYPOINT ["/codeeducation"]
